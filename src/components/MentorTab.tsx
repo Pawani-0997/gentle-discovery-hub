@@ -25,17 +25,13 @@ async function streamChat({
   onDelta: (deltaText: string) => void;
   onDone: () => void;
 }) {
-  messages: Message[];
-  onDelta: (deltaText: string) => void;
-  onDone: () => void;
-}) {
   const resp = await fetch(CHAT_URL, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, currentHobbies }),
   });
 
   if (!resp.ok) {
