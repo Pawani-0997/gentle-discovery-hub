@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Send, Cpu, User, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
+import { HOBBIES } from "@/data/hobbies";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
@@ -12,10 +13,12 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hobby-mentor
 
 async function streamChat({
   messages,
+  currentHobbies,
   onDelta,
   onDone,
 }: {
   messages: Message[];
+  currentHobbies?: string[];
   onDelta: (deltaText: string) => void;
   onDone: () => void;
 }) {
@@ -25,7 +28,7 @@ async function streamChat({
       "Content-Type": "application/json",
       Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
     },
-    body: JSON.stringify({ messages }),
+    body: JSON.stringify({ messages, currentHobbies }),
   });
 
   if (!resp.ok) {
@@ -128,6 +131,7 @@ export default function MentorTab() {
     try {
       await streamChat({
         messages: newMessages,
+        currentHobbies: HOBBIES.map((h) => h.name),
         onDelta: (chunk) => upsertAssistant(chunk),
         onDone: () => setIsLoading(false),
       });

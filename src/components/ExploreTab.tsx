@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bookmark, BookmarkCheck, Zap, ArrowLeft, Clock, DollarSign, BarChart3, Plus, Users, Crown, MessageCircle } from "lucide-react";
-import { HOBBIES, CATEGORIES, type Hobby } from "@/data/hobbies";
+import { Search, Bookmark, BookmarkCheck, Zap, ArrowLeft, Clock, DollarSign, BarChart3, Plus, Users, Crown, MessageCircle, RefreshCw } from "lucide-react";
+import { CATEGORIES, type Hobby } from "@/data/hobbies";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import CreateCommunityForm from "./CreateCommunityForm";
 import CommunityPage from "./CommunityPage";
 import CommunityQuickChat from "./CommunityQuickChat";
+import { useShuffledHobbies } from "@/hooks/useShuffledHobbies";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
@@ -29,6 +30,7 @@ interface ExploreTabProps {
 
 export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabProps) {
   const { user } = useAuth();
+  const { hobbies: shuffledHobbies, getImage, refreshFeed, isRefreshing } = useShuffledHobbies();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [selectedHobby, setSelectedHobby] = useState<Hobby | null>(null);
@@ -110,7 +112,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
     }
   };
 
-  const filtered = HOBBIES.filter((h) => {
+  const filtered = shuffledHobbies.filter((h) => {
     const matchesCategory = activeCategory === "All" || h.category === activeCategory;
     const matchesSearch =
       search === "" ||
@@ -135,7 +137,18 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: BEZIER }}
         >
-          <h1 className="text-3xl mb-6">Explore</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl">Explore</h1>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={refreshFeed}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-card border border-border text-sm font-medium text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </motion.button>
+          </div>
 
           {/* Search */}
           <div className="relative mb-5">
@@ -207,6 +220,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
               saved={savedHobbies.includes(hobby.id)}
               onToggleSave={() => onToggleSave(hobby.id)}
               onOpen={() => setSelectedHobby(hobby)}
+              imageUrl={getImage(hobby)}
             />
           ))}
           {filtered.length === 0 && filteredCommunities.length === 0 && (
@@ -247,6 +261,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
             saved={savedHobbies.includes(selectedHobby.id)}
             onToggleSave={() => onToggleSave(selectedHobby.id)}
             onClose={() => setSelectedHobby(null)}
+            imageUrl={getImage(selectedHobby)}
           />
         )}
         {selectedCommunity && (
@@ -376,9 +391,10 @@ interface HobbyCardProps {
   saved: boolean;
   onToggleSave: () => void;
   onOpen: () => void;
+  imageUrl: string;
 }
 
-function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps) {
+function HobbyCard({ hobby, index, saved, onToggleSave, onOpen, imageUrl }: HobbyCardProps) {
   const handleJoinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleSave();
@@ -397,7 +413,7 @@ function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps
     >
       <div className="relative aspect-[16/10] overflow-hidden">
         <img
-          src={hobby.image}
+          src={imageUrl}
           alt={hobby.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           loading="lazy"
@@ -454,9 +470,10 @@ interface HobbyDetailPageProps {
   saved: boolean;
   onToggleSave: () => void;
   onClose: () => void;
+  imageUrl: string;
 }
 
-function HobbyDetailPage({ hobby, saved, onToggleSave, onClose }: HobbyDetailPageProps) {
+function HobbyDetailPage({ hobby, saved, onToggleSave, onClose, imageUrl }: HobbyDetailPageProps) {
   return (
     <motion.div
       initial={{ y: "100%" }}
@@ -466,7 +483,7 @@ function HobbyDetailPage({ hobby, saved, onToggleSave, onClose }: HobbyDetailPag
       className="fixed inset-0 bg-background z-50 overflow-y-auto"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
-        <img src={hobby.image} alt={hobby.name} className="w-full h-full object-cover" />
+        <img src={imageUrl} alt={hobby.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
         <button onClick={onClose} className="absolute top-6 left-6 p-2.5 bg-background/80 backdrop-blur-sm rounded-full cursor-pointer">
           <ArrowLeft size={20} className="text-foreground" />
