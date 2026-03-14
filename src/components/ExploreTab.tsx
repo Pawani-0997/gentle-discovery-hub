@@ -112,7 +112,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
     }
   };
 
-  const filtered = HOBBIES.filter((h) => {
+  const filtered = shuffledHobbies.filter((h) => {
     const matchesCategory = activeCategory === "All" || h.category === activeCategory;
     const matchesSearch =
       search === "" ||
