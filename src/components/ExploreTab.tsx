@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bookmark, BookmarkCheck, Zap, ArrowLeft, Clock, DollarSign, BarChart3, Plus, Users, Crown, MessageCircle } from "lucide-react";
-import { HOBBIES, CATEGORIES, type Hobby } from "@/data/hobbies";
+import { Search, Bookmark, BookmarkCheck, Zap, ArrowLeft, Clock, DollarSign, BarChart3, Plus, Users, Crown, MessageCircle, RefreshCw } from "lucide-react";
+import { CATEGORIES, type Hobby } from "@/data/hobbies";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import CreateCommunityForm from "./CreateCommunityForm";
 import CommunityPage from "./CommunityPage";
 import CommunityQuickChat from "./CommunityQuickChat";
+import { useShuffledHobbies } from "@/hooks/useShuffledHobbies";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
