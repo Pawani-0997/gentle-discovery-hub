@@ -57,7 +57,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
     fetchJoined();
   }, [user]);
 
-  const handleJoin = async (communityId: string) => {
+  const handleJoin = async (communityId: string, communityName: string) => {
     if (!user) return;
     setJoiningId(communityId);
     try {
@@ -65,12 +65,12 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
         await supabase.from("community_members").delete().eq("community_id", communityId).eq("user_id", user.id);
         await supabase.from("communities").update({ member_count: Math.max(0, (communities.find(c => c.id === communityId)?.member_count ?? 1) - 1) }).eq("id", communityId);
         setJoinedIds((prev) => { const n = new Set(prev); n.delete(communityId); return n; });
-        toast("Left community");
+        toast(`Left ${communityName}`);
       } else {
         await supabase.from("community_members").insert({ community_id: communityId, user_id: user.id, role: "member" });
         await supabase.from("communities").update({ member_count: (communities.find(c => c.id === communityId)?.member_count ?? 0) + 1 }).eq("id", communityId);
         setJoinedIds((prev) => new Set(prev).add(communityId));
-        toast.success("Joined community! 🎉");
+        toast.success(`Welcome to the ${communityName} tribe! 🎉`);
       }
       fetchCommunities();
     } catch {
