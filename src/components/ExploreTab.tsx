@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import CreateCommunityForm from "./CreateCommunityForm";
+import CommunityPage from "./CommunityPage";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
@@ -34,6 +35,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
   const [communities, setCommunities] = useState<Community[]>([]);
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [joiningId, setJoiningId] = useState<string | null>(null);
+  const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
 
   const fetchCommunities = async () => {
     const { data } = await supabase
@@ -159,6 +161,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
                   isCreator={community.creator_id === user?.id}
                   joining={joiningId === community.id}
                   onJoin={() => handleJoin(community.id, community.name)}
+                  onOpen={() => setSelectedCommunity(community)}
                 />
               ))}
             </div>
@@ -217,6 +220,12 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
             onClose={() => setSelectedHobby(null)}
           />
         )}
+        {selectedCommunity && (
+          <CommunityPage
+            community={selectedCommunity}
+            onClose={() => setSelectedCommunity(null)}
+          />
+        )}
       </AnimatePresence>
     </>
   );
@@ -231,15 +240,17 @@ interface CommunityCardProps {
   isCreator: boolean;
   joining: boolean;
   onJoin: () => void;
+  onOpen: () => void;
 }
 
-function CommunityCard({ community, index, joined, isCreator, joining, onJoin }: CommunityCardProps) {
+function CommunityCard({ community, index, joined, isCreator, joining, onJoin, onOpen }: CommunityCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: BEZIER, delay: index * 0.06 }}
-      className="rounded-[1.5rem] overflow-hidden bg-card shadow-ceramic"
+      className="rounded-[1.5rem] overflow-hidden bg-card shadow-ceramic cursor-pointer"
+      onClick={onOpen}
     >
       {/* Cover */}
       {community.cover_image_url && (
@@ -279,7 +290,7 @@ function CommunityCard({ community, index, joined, isCreator, joining, onJoin }:
           </span>
         </div>
         <button
-          onClick={onJoin}
+          onClick={(e) => { e.stopPropagation(); onJoin(); }}
           disabled={joining || isCreator}
           className={`w-full py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
             isCreator
