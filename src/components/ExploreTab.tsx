@@ -261,6 +261,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
             saved={savedHobbies.includes(selectedHobby.id)}
             onToggleSave={() => onToggleSave(selectedHobby.id)}
             onClose={() => setSelectedHobby(null)}
+            imageUrl={getImage(selectedHobby)}
           />
         )}
         {selectedCommunity && (
