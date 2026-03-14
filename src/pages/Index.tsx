@@ -5,13 +5,17 @@ import BottomNav from "@/components/BottomNav";
 import QuizModal from "@/components/QuizModal";
 import ExploreTab from "@/components/ExploreTab";
 import MentorTab from "@/components/MentorTab";
+import ProfileTab from "@/components/ProfileTab";
 import CommunityFeed from "@/components/CommunityFeed";
+import LeaderboardSection from "@/components/LeaderboardSection";
+import AuthPage from "@/components/AuthPage";
 import hobbyImage from "@/assets/hobby-linocut.jpg";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
 const Index = () => {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
+  const [isAuthOpen, setIsAuthOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [savedHobbies, setSavedHobbies] = useState<string[]>([]);
   const [followedHobbies, setFollowedHobbies] = useState<string[]>([]);
@@ -92,6 +96,9 @@ const Index = () => {
 
           {/* Community Feed */}
           <CommunityFeed followedHobbies={followedHobbies} />
+
+          {/* Leaderboard */}
+          <LeaderboardSection />
         </main>
       )}
 
@@ -103,13 +110,9 @@ const Index = () => {
       {/* AI Mentor Tab */}
       {activeTab === "ai" && <MentorTab />}
 
-      {/* Profile placeholder */}
+      {/* Profile Tab */}
       {activeTab === "profile" && (
-        <div className="px-6 pt-20 pb-32 max-w-md mx-auto flex flex-col items-center justify-center min-h-[60vh]">
-          <p className="text-muted-foreground text-lg text-center">
-            Profile — coming soon
-          </p>
-        </div>
+        <ProfileTab onLoginRequest={() => setIsAuthOpen(true)} />
       )}
 
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
@@ -121,6 +124,7 @@ const Index = () => {
             onJoinCommunity={handleQuizComplete}
           />
         )}
+        {isAuthOpen && <AuthPage onClose={() => setIsAuthOpen(false)} />}
       </AnimatePresence>
     </div>
   );

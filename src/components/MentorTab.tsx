@@ -2,47 +2,95 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Cpu, User, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { toast } from "sonner";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
 type Message = { role: "user" | "assistant"; content: string };
 
-const SYSTEM_PROMPT =
-  "You are a supportive hobby coach. Help users find low-cost ways to start new hobbies and give them a simple 3-step First Project plan. Be encouraging, concise, and practical. Use markdown formatting for clarity.";
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hobby-mentor`;
 
-// Offline hobby coach responses when Cloud is unavailable
-function getOfflineResponse(input: string): string {
-  const lower = input.toLowerCase();
+async function streamChat({
+  messages,
+  onDelta,
+  onDone,
+}: {
+  messages: Message[];
+  onDelta: (deltaText: string) => void;
+  onDone: () => void;
+}) {
+  const resp = await fetch(CHAT_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+    },
+    body: JSON.stringify({ messages }),
+  });
 
-  if (lower.includes("origami") || lower.includes("paper")) {
-    return `### 🦢 Origami — Your 3-Step First Project\n\n1. **Grab a square sheet** — printer paper cut to 6×6 inches works perfectly\n2. **Follow a crane tutorial** — search "origami crane step by step" (15 min)\n3. **Fold 5 cranes** in a row to build muscle memory\n\n💡 *Tip: Crisp creases matter more than fancy paper. Use a ruler edge!*`;
-  }
-  if (lower.includes("chess")) {
-    return `### ♟️ Chess — Your 3-Step First Project\n\n1. **Learn piece movement** on Lichess.org (free, 10 minutes)\n2. **Play 3 games** against the easy bot — focus on controlling the center\n3. **Review one game** with the analysis tool to spot your biggest mistake\n\n💡 *Tip: Don't memorize openings yet. Just ask "is this piece safe?" before every move.*`;
-  }
-  if (lower.includes("paint") || lower.includes("watercolor") || lower.includes("art") || lower.includes("draw") || lower.includes("sketch")) {
-    return `### 🎨 Watercolor Painting — Your 3-Step First Project\n\n1. **Get a $12 travel palette** with 12 pans and one round brush\n2. **Paint a gradient wash** — wet paper, drop in warm yellow, blend to rose\n3. **Paint one simple object** from life (an apple, a leaf, your coffee mug)\n\n💡 *Tip: Start with only 3 colors (red, yellow, blue) — you can mix everything else!*`;
-  }
-  if (lower.includes("photo")) {
-    return `### 📷 Nature Photography — Your 3-Step First Project\n\n1. **Enable grid lines** on your phone camera (rule of thirds)\n2. **Take a 20-min photo walk** — capture 10 small details near home\n3. **Pick your best shot**, crop it, and adjust exposure slightly\n\n💡 *Tip: The golden hour (1h after sunrise, 1h before sunset) makes everything gorgeous.*`;
-  }
-  if (lower.includes("hik") || lower.includes("outdoor") || lower.includes("trail") || lower.includes("walk")) {
-    return `### 🥾 Trail Hiking — Your 3-Step First Project\n\n1. **Find a trail under 2 miles** on AllTrails (flat terrain)\n2. **Bring water + layers** — more than you think you need\n3. **Notice 5 things** you've never seen before and photograph one\n\n💡 *Tip: Comfort builds confidence. Your first hike should feel easy, not epic.*`;
-  }
-  if (lower.includes("code") || lower.includes("coding") || lower.includes("programming") || lower.includes("develop")) {
-    return `### 💻 Coding — Your 3-Step First Project\n\n1. **Try freeCodeCamp** — start with the HTML/CSS intro (free, 1 hour)\n2. **Build a simple personal page** with your name, a photo, and 3 hobbies\n3. **Deploy it** on GitHub Pages so you can share the link\n\n💡 *Tip: Don't pick a language first — pick a project that excites you, then learn the tool.*`;
-  }
-  if (lower.includes("electronic") || lower.includes("arduino") || lower.includes("circuit")) {
-    return `### 🔧 Arduino & Electronics — Your 3-Step First Project\n\n1. **Get an Arduino Uno starter kit** (~$30 online)\n2. **Upload the Blink sketch** — it comes built-in (takes 2 minutes)\n3. **Modify the blink timing** to create a heartbeat pattern\n\n💡 *Tip: An LED + resistor + battery is the "Hello World" of electronics.*`;
-  }
-  if (lower.includes("budget") || lower.includes("free") || lower.includes("cheap") || lower.includes("cost") || lower.includes("money")) {
-    return `### 💰 Best Free Hobbies to Start Today\n\n- **Origami** — just printer paper\n- **Chess** — Lichess.org is 100% free\n- **Hiking** — trails are free, just need shoes\n- **Sketching** — pencil + notebook\n- **Coding** — freeCodeCamp, zero cost\n\n💡 *Pick one that makes you curious, not one that sounds impressive!*`;
-  }
-  if (lower.includes("hello") || lower.includes("hi") || lower.includes("hey") || lower.includes("start")) {
-    return `Hey there! 👋 I'm your hobby coach.\n\nI help people find **low-cost, fulfilling hobbies** and give you a simple plan to start today.\n\nTry asking me:\n- *"What's a good free indoor hobby?"*\n- *"Help me start watercolor painting"*\n- *"I want something outdoorsy"*\n\nWhat sounds interesting to you?`;
+  if (!resp.ok) {
+    const errorData = await resp.json().catch(() => null);
+    const errorMsg = errorData?.error || "AI service unavailable";
+    if (resp.status === 429) toast.error("Rate limit reached. Wait a moment and try again.");
+    else if (resp.status === 402) toast.error("AI credits depleted. Add credits in workspace settings.");
+    else toast.error(errorMsg);
+    onDone();
+    return;
   }
 
-  return `Great question! Here are some ideas to explore:\n\n### 🌟 Your 3-Step Plan to Find a Hobby\n\n1. **Ask yourself**: Do I want to *make* something or *master* something?\n2. **Try one thing** for just 15 minutes today — no commitment\n3. **Share your first attempt** — imperfection is the point!\n\nWant me to suggest something specific? Tell me:\n- Are you more **creative** or **analytical**?\n- **Indoor** or **outdoor**?\n- What's your budget?`;
+  if (!resp.body) { onDone(); return; }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let textBuffer = "";
+  let streamDone = false;
+
+  while (!streamDone) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    textBuffer += decoder.decode(value, { stream: true });
+
+    let newlineIndex: number;
+    while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+      let line = textBuffer.slice(0, newlineIndex);
+      textBuffer = textBuffer.slice(newlineIndex + 1);
+
+      if (line.endsWith("\r")) line = line.slice(0, -1);
+      if (line.startsWith(":") || line.trim() === "") continue;
+      if (!line.startsWith("data: ")) continue;
+
+      const jsonStr = line.slice(6).trim();
+      if (jsonStr === "[DONE]") { streamDone = true; break; }
+
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
+      } catch {
+        textBuffer = line + "\n" + textBuffer;
+        break;
+      }
+    }
+  }
+
+  // Final flush
+  if (textBuffer.trim()) {
+    for (let raw of textBuffer.split("\n")) {
+      if (!raw) continue;
+      if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+      if (raw.startsWith(":") || raw.trim() === "") continue;
+      if (!raw.startsWith("data: ")) continue;
+      const jsonStr = raw.slice(6).trim();
+      if (jsonStr === "[DONE]") continue;
+      try {
+        const parsed = JSON.parse(jsonStr);
+        const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+        if (content) onDelta(content);
+      } catch { /* ignore */ }
+    }
+  }
+
+  onDone();
 }
 
 export default function MentorTab() {
@@ -55,21 +103,39 @@ export default function MentorTab() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  const handleSend = async () => {
-    const trimmed = input.trim();
+  const handleSend = async (text?: string) => {
+    const trimmed = (text || input).trim();
     if (!trimmed || isLoading) return;
 
     const userMsg: Message = { role: "user", content: trimmed };
-    setMessages((prev) => [...prev, userMsg]);
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
     setInput("");
     setIsLoading(true);
 
-    // Use offline responses for now (swap to Lovable AI edge function when Cloud is enabled)
-    setTimeout(() => {
-      const response = getOfflineResponse(trimmed);
-      setMessages((prev) => [...prev, { role: "assistant", content: response }]);
+    let assistantSoFar = "";
+    const upsertAssistant = (nextChunk: string) => {
+      assistantSoFar += nextChunk;
+      setMessages((prev) => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant") {
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+        }
+        return [...prev, { role: "assistant", content: assistantSoFar }];
+      });
+    };
+
+    try {
+      await streamChat({
+        messages: newMessages,
+        onDelta: (chunk) => upsertAssistant(chunk),
+        onDone: () => setIsLoading(false),
+      });
+    } catch (e) {
+      console.error(e);
       setIsLoading(false);
-    }, 800 + Math.random() * 600);
+      toast.error("Failed to get response. Please try again.");
+    }
   };
 
   return (
@@ -107,20 +173,7 @@ export default function MentorTab() {
               {["How do I start origami?", "Free indoor hobbies", "Help me start painting"].map((q) => (
                 <button
                   key={q}
-                  onClick={() => {
-                    setInput(q);
-                    setTimeout(() => {
-                      setInput(q);
-                      const userMsg: Message = { role: "user", content: q };
-                      setMessages((prev) => [...prev, userMsg]);
-                      setIsLoading(true);
-                      setTimeout(() => {
-                        setMessages((prev) => [...prev, { role: "assistant", content: getOfflineResponse(q) }]);
-                        setIsLoading(false);
-                      }, 800 + Math.random() * 600);
-                    }, 50);
-                    setInput("");
-                  }}
+                  onClick={() => handleSend(q)}
                   className="px-3.5 py-2 bg-card border border-border rounded-full text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer"
                 >
                   {q}
@@ -168,12 +221,8 @@ export default function MentorTab() {
           ))}
         </AnimatePresence>
 
-        {isLoading && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex gap-3"
-          >
+        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex gap-3">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
               <Cpu size={16} className="text-primary" />
             </div>
@@ -197,7 +246,7 @@ export default function MentorTab() {
           />
           <motion.button
             whileTap={{ scale: 0.9 }}
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!input.trim() || isLoading}
             className="p-3.5 bg-primary text-primary-foreground rounded-lg disabled:opacity-40 cursor-pointer transition-opacity"
           >

@@ -1,6 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Heart, Calendar, MessageCircle } from "lucide-react";
+import { Heart, Calendar, MessageCircle, Plus, Loader2, Send, X } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 import communityOrigami from "@/assets/community-origami.jpg";
 import communityWatercolor from "@/assets/community-watercolor.jpg";
@@ -19,11 +22,13 @@ interface CommunityPost {
   daysActive: number;
   cheers: number;
   comments: number;
+  isReal?: boolean;
+  user_id?: string;
 }
 
 const MOCK_POSTS: CommunityPost[] = [
   {
-    id: "1",
+    id: "mock-1",
     username: "PaperCraneKai",
     avatar: "🦢",
     hobby: "Origami",
@@ -34,7 +39,7 @@ const MOCK_POSTS: CommunityPost[] = [
     comments: 5,
   },
   {
-    id: "2",
+    id: "mock-2",
     username: "SunsetBrush",
     avatar: "🎨",
     hobby: "Watercolor",
@@ -45,7 +50,7 @@ const MOCK_POSTS: CommunityPost[] = [
     comments: 8,
   },
   {
-    id: "3",
+    id: "mock-3",
     username: "TrailRunner_Mia",
     avatar: "🥾",
     hobby: "Hiking",
@@ -56,7 +61,7 @@ const MOCK_POSTS: CommunityPost[] = [
     comments: 12,
   },
   {
-    id: "4",
+    id: "mock-4",
     username: "CheckmateNova",
     avatar: "♟️",
     hobby: "Chess",
@@ -73,13 +78,45 @@ interface CommunityFeedProps {
 }
 
 export default function CommunityFeed({ followedHobbies }: CommunityFeedProps) {
-  const posts = followedHobbies.length > 0
-    ? MOCK_POSTS.filter((p) =>
+  const { user } = useAuth();
+  const [realPosts, setRealPosts] = useState<CommunityPost[]>([]);
+  const [showCreatePost, setShowCreatePost] = useState(false);
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      const { data } = await supabase
+        .from("posts")
+        .select("*, profiles!posts_user_id_fkey(display_name, username, avatar_url)")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (data) {
+        const mapped: CommunityPost[] = data.map((p: any) => ({
+          id: p.id,
+          username: p.profiles?.display_name || "User",
+          avatar: "👤",
+          hobby: p.hobby,
+          image: p.image_url || communityOrigami,
+          caption: p.caption,
+          daysActive: Math.max(1, Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000)),
+          cheers: 0,
+          comments: 0,
+          isReal: true,
+          user_id: p.user_id,
+        }));
+        setRealPosts(mapped);
+      }
+    };
+    fetchPosts();
+  }, []);
+
+  const allPosts = [...realPosts, ...MOCK_POSTS];
+  const filteredPosts = followedHobbies.length > 0
+    ? allPosts.filter((p) =>
         followedHobbies.some((h) => p.hobby.toLowerCase().includes(h.toLowerCase()))
       )
-    : MOCK_POSTS;
-
-  const displayPosts = posts.length > 0 ? posts : MOCK_POSTS;
+    : allPosts;
+  const displayPosts = filteredPosts.length > 0 ? filteredPosts : allPosts;
 
   return (
     <section className="space-y-5 mt-8">
@@ -87,12 +124,34 @@ export default function CommunityFeed({ followedHobbies }: CommunityFeedProps) {
         <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground font-sans">
           Community Feed
         </h2>
-        {followedHobbies.length > 0 && (
-          <span className="text-[11px] font-medium text-primary/60 bg-primary/10 px-2.5 py-1 rounded-full">
-            Following {followedHobbies.length} {followedHobbies.length === 1 ? "hobby" : "hobbies"}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {followedHobbies.length > 0 && (
+            <span className="text-[11px] font-medium text-primary/60 bg-primary/10 px-2.5 py-1 rounded-full">
+              Following {followedHobbies.length}
+            </span>
+          )}
+          {user && (
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setShowCreatePost(true)}
+              className="p-2 bg-primary text-primary-foreground rounded-full cursor-pointer"
+            >
+              <Plus size={16} />
+            </motion.button>
+          )}
+        </div>
       </div>
+
+      {showCreatePost && user && (
+        <CreatePostCard
+          userId={user.id}
+          onClose={() => setShowCreatePost(false)}
+          onCreated={(post) => {
+            setRealPosts((prev) => [post, ...prev]);
+            setShowCreatePost(false);
+          }}
+        />
+      )}
 
       <div className="space-y-4">
         {displayPosts.map((post, i) => (
@@ -100,6 +159,87 @@ export default function CommunityFeed({ followedHobbies }: CommunityFeedProps) {
         ))}
       </div>
     </section>
+  );
+}
+
+function CreatePostCard({
+  userId,
+  onClose,
+  onCreated,
+}: {
+  userId: string;
+  onClose: () => void;
+  onCreated: (post: CommunityPost) => void;
+}) {
+  const [caption, setCaption] = useState("");
+  const [hobby, setHobby] = useState("");
+  const [posting, setPosting] = useState(false);
+
+  const handlePost = async () => {
+    if (!caption.trim() || !hobby.trim()) {
+      toast.error("Please fill in both fields");
+      return;
+    }
+    setPosting(true);
+    const { data, error } = await supabase
+      .from("posts")
+      .insert({ user_id: userId, caption, hobby })
+      .select()
+      .single();
+
+    if (error) {
+      toast.error("Failed to create post");
+    } else if (data) {
+      onCreated({
+        id: data.id,
+        username: "You",
+        avatar: "👤",
+        hobby: data.hobby,
+        image: communityOrigami,
+        caption: data.caption,
+        daysActive: 1,
+        cheers: 0,
+        comments: 0,
+        isReal: true,
+        user_id: data.user_id,
+      });
+      toast.success("Post shared! 🎉");
+    }
+    setPosting(false);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      className="bg-card rounded-[1.5rem] p-5 shadow-ceramic overflow-hidden"
+    >
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold">Share Your Progress</h3>
+        <button onClick={onClose} className="text-muted-foreground cursor-pointer"><X size={18} /></button>
+      </div>
+      <input
+        placeholder="What hobby? (e.g. Origami)"
+        value={hobby}
+        onChange={(e) => setHobby(e.target.value)}
+        className="w-full px-4 py-2.5 bg-secondary rounded-lg text-sm mb-2 border-none focus:outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground"
+      />
+      <textarea
+        placeholder="Share what you've been working on..."
+        value={caption}
+        onChange={(e) => setCaption(e.target.value)}
+        className="w-full px-4 py-2.5 bg-secondary rounded-lg text-sm mb-3 resize-none h-20 border-none focus:outline-none focus:ring-2 focus:ring-primary/30 text-foreground placeholder:text-muted-foreground"
+      />
+      <motion.button
+        whileTap={{ scale: 0.96 }}
+        onClick={handlePost}
+        disabled={posting}
+        className="w-full py-3 bg-primary text-primary-foreground rounded-lg text-sm font-medium flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
+      >
+        {posting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+        Post
+      </motion.button>
+    </motion.div>
   );
 }
 
