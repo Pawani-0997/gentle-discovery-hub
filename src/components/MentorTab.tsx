@@ -131,6 +131,7 @@ export default function MentorTab() {
     try {
       await streamChat({
         messages: newMessages,
+        currentHobbies: HOBBIES.map((h) => h.name),
         onDelta: (chunk) => upsertAssistant(chunk),
         onDone: () => setIsLoading(false),
       });
