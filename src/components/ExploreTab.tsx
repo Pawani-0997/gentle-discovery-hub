@@ -158,7 +158,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
                   joined={joinedIds.has(community.id)}
                   isCreator={community.creator_id === user?.id}
                   joining={joiningId === community.id}
-                  onJoin={() => handleJoin(community.id)}
+                  onJoin={() => handleJoin(community.id, community.name)}
                 />
               ))}
             </div>
