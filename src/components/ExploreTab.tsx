@@ -301,25 +301,34 @@ function CommunityCard({ community, index, joined, isCreator, joining, onJoin, o
             {community.member_count} {community.member_count === 1 ? "member" : "members"}
           </span>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onJoin(); }}
-          disabled={joining || isCreator}
-          className={`w-full py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-            isCreator
-              ? "bg-accent/40 text-accent-foreground cursor-default"
-              : joined
-              ? "bg-secondary text-secondary-foreground border border-border"
-              : "bg-primary text-primary-foreground shadow-ceramic"
-          }`}
-        >
-          {isCreator ? (
-            <><Crown size={15} /> Admin</>
-          ) : joined ? (
-            <><Users size={15} /> Member ✓</>
-          ) : (
-            <><Users size={15} /> Join Community</>
-          )}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDiscussion(); }}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 bg-card text-foreground border border-border hover:bg-secondary"
+          >
+            <MessageCircle size={15} />
+            Discussion
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onJoin(); }}
+            disabled={joining || isCreator}
+            className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              isCreator
+                ? "bg-accent/40 text-accent-foreground cursor-default"
+                : joined
+                ? "bg-secondary text-secondary-foreground border border-border"
+                : "bg-primary text-primary-foreground shadow-ceramic"
+            }`}
+          >
+            {isCreator ? (
+              <><Crown size={15} /> Admin</>
+            ) : joined ? (
+              <><Users size={15} /> Member ✓</>
+            ) : (
+              <><Users size={15} /> Join</>
+            )}
+          </button>
+        </div>
       </div>
     </motion.div>
   );
