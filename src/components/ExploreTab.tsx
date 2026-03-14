@@ -137,7 +137,18 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: BEZIER }}
         >
-          <h1 className="text-3xl mb-6">Explore</h1>
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-3xl">Explore</h1>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={refreshFeed}
+              disabled={isRefreshing}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-card border border-border text-sm font-medium text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+              {isRefreshing ? "Refreshing..." : "Refresh"}
+            </motion.button>
+          </div>
 
           {/* Search */}
           <div className="relative mb-5">
