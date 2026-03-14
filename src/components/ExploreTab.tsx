@@ -412,7 +412,7 @@ function HobbyCard({ hobby, index, saved, onToggleSave, onOpen, imageUrl }: Hobb
     >
       <div className="relative aspect-[16/10] overflow-hidden">
         <img
-          src={hobby.image}
+          src={imageUrl}
           alt={hobby.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           loading="lazy"
