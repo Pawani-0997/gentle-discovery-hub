@@ -243,7 +243,8 @@ function CommunityCard({ community, index, joined, isCreator, joining, onJoin, o
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: BEZIER, delay: index * 0.06 }}
-      className="rounded-[1.5rem] overflow-hidden bg-card shadow-ceramic"
+      className="rounded-[1.5rem] overflow-hidden bg-card shadow-ceramic cursor-pointer"
+      onClick={onOpen}
     >
       {/* Cover */}
       {community.cover_image_url && (
