@@ -457,17 +457,6 @@ function HobbyCard({ hobby, index, saved, onToggleSave, onOpen, onDiscussion }: 
     </motion.div>
   );
 }
-        >
-          {saved ? (
-            <><Users size={15} /> Member ✓</>
-          ) : (
-            <><Users size={15} /> Join Community</>
-          )}
-        </button>
-      </div>
-    </motion.div>
-  );
-}
 
 /* ── Hobby Detail Page (unchanged) ── */
 
