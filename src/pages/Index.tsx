@@ -4,6 +4,8 @@ import { ArrowRight } from "lucide-react";
 import BottomNav from "@/components/BottomNav";
 import QuizModal from "@/components/QuizModal";
 import ExploreTab from "@/components/ExploreTab";
+import MentorTab from "@/components/MentorTab";
+import CommunityFeed from "@/components/CommunityFeed";
 import hobbyImage from "@/assets/hobby-linocut.jpg";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
@@ -12,11 +14,19 @@ const Index = () => {
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
   const [savedHobbies, setSavedHobbies] = useState<string[]>([]);
+  const [followedHobbies, setFollowedHobbies] = useState<string[]>([]);
 
   const toggleSave = (id: string) => {
     setSavedHobbies((prev) =>
       prev.includes(id) ? prev.filter((h) => h !== id) : [...prev, id]
     );
+  };
+
+  const handleQuizComplete = (hobbyName: string) => {
+    setFollowedHobbies((prev) =>
+      prev.includes(hobbyName) ? prev : [...prev, hobbyName]
+    );
+    setIsQuizOpen(false);
   };
 
   return (
@@ -79,6 +89,9 @@ const Index = () => {
               </div>
             </motion.div>
           </section>
+
+          {/* Community Feed */}
+          <CommunityFeed followedHobbies={followedHobbies} />
         </main>
       )}
 
@@ -87,11 +100,14 @@ const Index = () => {
         <ExploreTab savedHobbies={savedHobbies} onToggleSave={toggleSave} />
       )}
 
-      {/* Placeholder tabs */}
-      {(activeTab === "ai" || activeTab === "profile") && (
+      {/* AI Mentor Tab */}
+      {activeTab === "ai" && <MentorTab />}
+
+      {/* Profile placeholder */}
+      {activeTab === "profile" && (
         <div className="px-6 pt-20 pb-32 max-w-md mx-auto flex flex-col items-center justify-center min-h-[60vh]">
           <p className="text-muted-foreground text-lg text-center">
-            {activeTab === "ai" ? "AI Mentor" : "Profile"} — coming soon
+            Profile — coming soon
           </p>
         </div>
       )}
@@ -99,7 +115,12 @@ const Index = () => {
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 
       <AnimatePresence>
-        {isQuizOpen && <QuizModal onClose={() => setIsQuizOpen(false)} />}
+        {isQuizOpen && (
+          <QuizModal
+            onClose={() => setIsQuizOpen(false)}
+            onJoinCommunity={handleQuizComplete}
+          />
+        )}
       </AnimatePresence>
     </div>
   );

@@ -81,9 +81,10 @@ function getHobbyResult(answers: Answers): HobbyResult {
 
 interface QuizModalProps {
   onClose: () => void;
+  onJoinCommunity?: (hobbyName: string) => void;
 }
 
-export default function QuizModal({ onClose }: QuizModalProps) {
+export default function QuizModal({ onClose, onJoinCommunity }: QuizModalProps) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [showResult, setShowResult] = useState(false);
