@@ -220,6 +220,12 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
             onClose={() => setSelectedHobby(null)}
           />
         )}
+        {selectedCommunity && (
+          <CommunityPage
+            community={selectedCommunity}
+            onClose={() => setSelectedCommunity(null)}
+          />
+        )}
       </AnimatePresence>
     </>
   );
