@@ -84,22 +84,44 @@ export default function CommunityFeed({ followedHobbies }: CommunityFeedProps) {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data } = await supabase
+      const { data: postsData } = await supabase
         .from("posts")
-        .select("*, profiles!posts_user_id_fkey(display_name, username, avatar_url)")
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(20);
 
-      if (data) {
-        const mapped: CommunityPost[] = data.map((p: any) => ({
+      if (postsData) {
+        // Fetch like counts for these posts
+        const postIds = postsData.map((p: any) => p.id);
+        const { data: likeCounts } = await supabase
+          .from("likes")
+          .select("post_id")
+          .in("post_id", postIds.length > 0 ? postIds : ["none"]);
+
+        const likeMap: Record<string, number> = {};
+        (likeCounts || []).forEach((l: any) => {
+          likeMap[l.post_id] = (likeMap[l.post_id] || 0) + 1;
+        });
+
+        // Fetch profiles for usernames
+        const userIds = [...new Set(postsData.map((p: any) => p.user_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name, avatar_url")
+          .in("user_id", userIds.length > 0 ? userIds : ["none"]);
+
+        const profileMap: Record<string, any> = {};
+        (profiles || []).forEach((p: any) => { profileMap[p.user_id] = p; });
+
+        const mapped: CommunityPost[] = postsData.map((p: any) => ({
           id: p.id,
-          username: p.profiles?.display_name || "User",
+          username: profileMap[p.user_id]?.display_name || "User",
           avatar: "👤",
           hobby: p.hobby,
           image: p.image_url || communityOrigami,
           caption: p.caption,
           daysActive: Math.max(1, Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000)),
-          cheers: 0,
+          cheers: likeMap[p.id] || 0,
           comments: 0,
           isReal: true,
           user_id: p.user_id,
@@ -244,16 +266,54 @@ function CreatePostCard({
 }
 
 function FeedCard({ post, index }: { post: CommunityPost; index: number }) {
+  const { user } = useAuth();
   const [cheered, setCheered] = useState(false);
   const [cheerCount, setCheerCount] = useState(post.cheers);
+  const [loading, setLoading] = useState(false);
 
-  const handleCheer = () => {
-    if (!cheered) {
-      setCheerCount((c) => c + 1);
-    } else {
-      setCheerCount((c) => c - 1);
+  // Check if user already liked this post
+  useEffect(() => {
+    if (!user || !post.isReal) return;
+    supabase
+      .from("likes")
+      .select("id")
+      .eq("post_id", post.id)
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        if (data && data.length > 0) setCheered(true);
+      });
+  }, [user, post.id, post.isReal]);
+
+  const handleCheer = async () => {
+    // For mock posts or unauthenticated, just toggle locally
+    if (!user || !post.isReal) {
+      if (!cheered) setCheerCount((c) => c + 1);
+      else setCheerCount((c) => c - 1);
+      setCheered(!cheered);
+      return;
     }
-    setCheered(!cheered);
+
+    setLoading(true);
+    if (!cheered) {
+      const { error } = await supabase
+        .from("likes")
+        .insert({ user_id: user.id, post_id: post.id });
+      if (!error) {
+        setCheerCount((c) => c + 1);
+        setCheered(true);
+      }
+    } else {
+      const { error } = await supabase
+        .from("likes")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("post_id", post.id);
+      if (!error) {
+        setCheerCount((c) => c - 1);
+        setCheered(false);
+      }
+    }
+    setLoading(false);
   };
 
   return (
@@ -289,7 +349,8 @@ function FeedCard({ post, index }: { post: CommunityPost; index: number }) {
           <motion.button
             whileTap={{ scale: 0.85 }}
             onClick={handleCheer}
-            className="flex items-center gap-1.5 cursor-pointer"
+            disabled={loading}
+            className="flex items-center gap-1.5 cursor-pointer disabled:opacity-60"
           >
             <Heart
               size={20}

@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { User, Settings, LogOut, Heart, FileText, Users, Edit2, Camera, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import ProgressSection from "@/components/ProgressSection";
+import BadgeCelebration from "@/components/BadgeCelebration";
+import { useProgress } from "@/hooks/useProgress";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
@@ -34,6 +37,7 @@ export default function ProfileTab({ onLoginRequest }: ProfileTabProps) {
   const [editBio, setEditBio] = useState("");
   const [editName, setEditName] = useState("");
   const [saving, setSaving] = useState(false);
+  const progress = useProgress();
 
   useEffect(() => {
     if (!user) return;
@@ -63,12 +67,16 @@ export default function ProfileTab({ onLoginRequest }: ProfileTabProps) {
         supabase.from("follows").select("id", { count: "exact" }).eq("following_id", user.id),
         supabase.from("follows").select("id", { count: "exact" }).eq("follower_id", user.id),
       ]);
+      const postCount = postsRes.count || 0;
       setStats({
-        posts: postsRes.count || 0,
+        posts: postCount,
         followers: followersRes.count || 0,
         following: followingRes.count || 0,
         totalLikes: 0,
       });
+
+      // Check for "Consistent" badge (5 posts)
+      progress.checkAndAwardBadge("posts_created", postCount);
     };
 
     fetchProfile();
@@ -197,6 +205,17 @@ export default function ProfileTab({ onLoginRequest }: ProfileTabProps) {
           ))}
         </div>
 
+        {/* Progress & Achievements */}
+        <ProgressSection
+          level={progress.level}
+          xp={progress.xp}
+          xpToNext={progress.xpToNext}
+          allBadges={progress.allBadges}
+          earnedBadges={progress.earnedBadges}
+          checklist={progress.checklist}
+          onToggleChecklist={progress.toggleChecklist}
+        />
+
         {/* Hobby Interests */}
         {profile?.hobby_interests && profile.hobby_interests.length > 0 && (
           <section className="mb-8">
@@ -230,6 +249,13 @@ export default function ProfileTab({ onLoginRequest }: ProfileTabProps) {
           </div>
         </section>
       </motion.div>
+
+      {/* Badge Celebration Popup */}
+      <AnimatePresence>
+        {progress.newBadge && (
+          <BadgeCelebration badge={progress.newBadge} onClose={progress.dismissBadge} />
+        )}
+      </AnimatePresence>
     </div>
   );
 }
