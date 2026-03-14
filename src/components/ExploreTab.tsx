@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import CreateCommunityForm from "./CreateCommunityForm";
 import CommunityPage from "./CommunityPage";
+import CommunityQuickChat from "./CommunityQuickChat";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
