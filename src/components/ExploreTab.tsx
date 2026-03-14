@@ -377,9 +377,10 @@ interface HobbyCardProps {
   saved: boolean;
   onToggleSave: () => void;
   onOpen: () => void;
+  onDiscussion: () => void;
 }
 
-function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps) {
+function HobbyCard({ hobby, index, saved, onToggleSave, onOpen, onDiscussion }: HobbyCardProps) {
   const handleJoinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleSave();
@@ -429,13 +430,33 @@ function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps
             {saved ? <BookmarkCheck size={18} className="text-primary" /> : <Bookmark size={18} className="text-muted-foreground" />}
           </button>
         </div>
-        <button
-          onClick={handleJoinClick}
-          className={`w-full py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-            saved
-              ? "bg-secondary text-secondary-foreground border border-border"
-              : "bg-primary text-primary-foreground shadow-ceramic"
-          }`}
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDiscussion(); }}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 bg-card text-foreground border border-border hover:bg-secondary"
+          >
+            <MessageCircle size={15} />
+            Discussion
+          </button>
+          <button
+            onClick={handleJoinClick}
+            className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              saved
+                ? "bg-secondary text-secondary-foreground border border-border"
+                : "bg-primary text-primary-foreground shadow-ceramic"
+            }`}
+          >
+            {saved ? (
+              <><Users size={15} /> Member ✓</>
+            ) : (
+              <><Users size={15} /> Join</>
+            )}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
         >
           {saved ? (
             <><Users size={15} /> Member ✓</>
