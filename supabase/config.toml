@@ -1,1 +1,4 @@
 project_id = "ulfsxjnfjjfxmrncuijs"
+
+[functions.hobby-mentor]
+verify_jwt = false
