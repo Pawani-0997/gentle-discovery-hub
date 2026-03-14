@@ -33,6 +33,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [selectedHobby, setSelectedHobby] = useState<Hobby | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [hobbyChatId, setHobbyChatId] = useState<{ communityId: string; communityName: string; isMember: boolean } | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [joiningId, setJoiningId] = useState<string | null>(null);
@@ -81,6 +82,31 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
       toast.error("Something went wrong");
     } finally {
       setJoiningId(null);
+    }
+  };
+
+  const findCommunityForHobby = (hobby: Hobby) => {
+    const hobbyLower = hobby.name.toLowerCase();
+    const match = communities.find(
+      (c) =>
+        c.name.toLowerCase().includes(hobbyLower) ||
+        hobbyLower.includes(c.name.toLowerCase()) ||
+        c.tags.some((t) => t.toLowerCase() === hobby.id || t.toLowerCase() === hobbyLower)
+    );
+    return match;
+  };
+
+  const handleHobbyDiscussion = (hobby: Hobby) => {
+    const match = findCommunityForHobby(hobby);
+    if (match) {
+      setHobbyChatId({
+        communityId: match.id,
+        communityName: match.name,
+        isMember: joinedIds.has(match.id) || match.creator_id === user?.id,
+      });
+    } else {
+      toast("No community found for this hobby yet. Create one!", { icon: "💬" });
+      setShowCreateForm(true);
     }
   };
 
@@ -181,6 +207,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
               saved={savedHobbies.includes(hobby.id)}
               onToggleSave={() => onToggleSave(hobby.id)}
               onOpen={() => setSelectedHobby(hobby)}
+              onDiscussion={() => handleHobbyDiscussion(hobby)}
             />
           ))}
           {filtered.length === 0 && filteredCommunities.length === 0 && (
@@ -235,6 +262,14 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
             communityName={chatCommunity.name}
             isMember={joinedIds.has(chatCommunity.id) || chatCommunity.creator_id === user?.id}
             onClose={() => setChatCommunity(null)}
+          />
+        )}
+        {hobbyChatId && (
+          <CommunityQuickChat
+            communityId={hobbyChatId.communityId}
+            communityName={hobbyChatId.communityName}
+            isMember={hobbyChatId.isMember}
+            onClose={() => setHobbyChatId(null)}
           />
         )}
       </AnimatePresence>
@@ -342,9 +377,10 @@ interface HobbyCardProps {
   saved: boolean;
   onToggleSave: () => void;
   onOpen: () => void;
+  onDiscussion: () => void;
 }
 
-function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps) {
+function HobbyCard({ hobby, index, saved, onToggleSave, onOpen, onDiscussion }: HobbyCardProps) {
   const handleJoinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleSave();
@@ -394,20 +430,29 @@ function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps
             {saved ? <BookmarkCheck size={18} className="text-primary" /> : <Bookmark size={18} className="text-muted-foreground" />}
           </button>
         </div>
-        <button
-          onClick={handleJoinClick}
-          className={`w-full py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-            saved
-              ? "bg-secondary text-secondary-foreground border border-border"
-              : "bg-primary text-primary-foreground shadow-ceramic"
-          }`}
-        >
-          {saved ? (
-            <><Users size={15} /> Member ✓</>
-          ) : (
-            <><Users size={15} /> Join Community</>
-          )}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDiscussion(); }}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 bg-card text-foreground border border-border hover:bg-secondary"
+          >
+            <MessageCircle size={15} />
+            Discussion
+          </button>
+          <button
+            onClick={handleJoinClick}
+            className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              saved
+                ? "bg-secondary text-secondary-foreground border border-border"
+                : "bg-primary text-primary-foreground shadow-ceramic"
+            }`}
+          >
+            {saved ? (
+              <><Users size={15} /> Member ✓</>
+            ) : (
+              <><Users size={15} /> Join</>
+            )}
+          </button>
+        </div>
       </div>
     </motion.div>
   );
