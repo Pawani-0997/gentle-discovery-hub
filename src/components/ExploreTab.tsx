@@ -313,6 +313,14 @@ interface HobbyCardProps {
 }
 
 function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps) {
+  const handleJoinClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onToggleSave();
+    if (!saved) {
+      toast.success(`Welcome to the ${hobby.name} tribe! 🎉`);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -336,7 +344,7 @@ function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps
         </div>
       </div>
       <div className="p-5">
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex-1 min-w-0">
             <span className="text-[11px] font-bold uppercase tracking-widest text-primary/60 block mb-1">
               {hobby.category}
@@ -354,6 +362,20 @@ function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps
             {saved ? <BookmarkCheck size={18} className="text-primary" /> : <Bookmark size={18} className="text-muted-foreground" />}
           </button>
         </div>
+        <button
+          onClick={handleJoinClick}
+          className={`w-full py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            saved
+              ? "bg-secondary text-secondary-foreground border border-border"
+              : "bg-primary text-primary-foreground shadow-ceramic"
+          }`}
+        >
+          {saved ? (
+            <><Users size={15} /> Member ✓</>
+          ) : (
+            <><Users size={15} /> Join Community</>
+          )}
+        </button>
       </div>
     </motion.div>
   );
