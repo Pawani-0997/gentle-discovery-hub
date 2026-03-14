@@ -252,9 +252,10 @@ interface CommunityCardProps {
   joining: boolean;
   onJoin: () => void;
   onOpen: () => void;
+  onDiscussion: () => void;
 }
 
-function CommunityCard({ community, index, joined, isCreator, joining, onJoin, onOpen }: CommunityCardProps) {
+function CommunityCard({ community, index, joined, isCreator, joining, onJoin, onOpen, onDiscussion }: CommunityCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
