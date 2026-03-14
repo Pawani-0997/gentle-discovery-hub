@@ -9,9 +9,13 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages } = await req.json();
+    const { messages, currentHobbies } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const hobbyContext = currentHobbies?.length
+      ? `\n\nThe user is currently browsing these hobbies on their Explore feed (in this order): ${currentHobbies.join(", ")}. If they ask for a tip or about "what's on screen", reference these specific hobbies. Provide quick tips relevant to whichever hobby they mention or ask about.`
+      : "";
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -33,7 +37,7 @@ serve(async (req) => {
 - Suggest specific, actionable steps (not vague advice)
 - If a user seems unsure, ask a clarifying question about their interests, budget, or available time
 - Focus on hobbies like: art, music, coding, chess, hiking, photography, origami, electronics, watercolor, linocut printing, gardening, cooking, journaling, birdwatching, astronomy
-- Always maintain an encouraging tone — "You've got this!" energy`,
+- Always maintain an encouraging tone — "You've got this!" energy${hobbyContext}`,
           },
           ...messages,
         ],
