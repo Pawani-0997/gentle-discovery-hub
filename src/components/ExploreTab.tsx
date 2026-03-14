@@ -30,6 +30,7 @@ interface ExploreTabProps {
 
 export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabProps) {
   const { user } = useAuth();
+  const { hobbies: shuffledHobbies, getImage, refreshFeed, isRefreshing } = useShuffledHobbies();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [selectedHobby, setSelectedHobby] = useState<Hobby | null>(null);
