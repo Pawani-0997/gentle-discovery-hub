@@ -290,7 +290,7 @@ function CommunityCard({ community, index, joined, isCreator, joining, onJoin, o
           </span>
         </div>
         <button
-          onClick={onJoin}
+          onClick={(e) => { e.stopPropagation(); onJoin(); }}
           disabled={joining || isCreator}
           className={`w-full py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
             isCreator
