@@ -220,6 +220,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
               saved={savedHobbies.includes(hobby.id)}
               onToggleSave={() => onToggleSave(hobby.id)}
               onOpen={() => setSelectedHobby(hobby)}
+              imageUrl={getImage(hobby)}
             />
           ))}
           {filtered.length === 0 && filteredCommunities.length === 0 && (
