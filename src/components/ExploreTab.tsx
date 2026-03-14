@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bookmark, BookmarkCheck, Zap, ArrowLeft, Clock, DollarSign, BarChart3, Plus, Users, Crown } from "lucide-react";
+import { Search, Bookmark, BookmarkCheck, Zap, ArrowLeft, Clock, DollarSign, BarChart3, Plus, Users, Crown, MessageCircle } from "lucide-react";
 import { HOBBIES, CATEGORIES, type Hobby } from "@/data/hobbies";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import CreateCommunityForm from "./CreateCommunityForm";
 import CommunityPage from "./CommunityPage";
+import CommunityQuickChat from "./CommunityQuickChat";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
@@ -36,6 +37,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+  const [chatCommunity, setChatCommunity] = useState<Community | null>(null);
 
   const fetchCommunities = async () => {
     const { data } = await supabase
@@ -162,6 +164,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
                   joining={joiningId === community.id}
                   onJoin={() => handleJoin(community.id, community.name)}
                   onOpen={() => setSelectedCommunity(community)}
+                  onDiscussion={() => setChatCommunity(community)}
                 />
               ))}
             </div>
@@ -226,6 +229,14 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
             onClose={() => setSelectedCommunity(null)}
           />
         )}
+        {chatCommunity && (
+          <CommunityQuickChat
+            communityId={chatCommunity.id}
+            communityName={chatCommunity.name}
+            isMember={joinedIds.has(chatCommunity.id) || chatCommunity.creator_id === user?.id}
+            onClose={() => setChatCommunity(null)}
+          />
+        )}
       </AnimatePresence>
     </>
   );
@@ -241,9 +252,10 @@ interface CommunityCardProps {
   joining: boolean;
   onJoin: () => void;
   onOpen: () => void;
+  onDiscussion: () => void;
 }
 
-function CommunityCard({ community, index, joined, isCreator, joining, onJoin, onOpen }: CommunityCardProps) {
+function CommunityCard({ community, index, joined, isCreator, joining, onJoin, onOpen, onDiscussion }: CommunityCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -289,25 +301,34 @@ function CommunityCard({ community, index, joined, isCreator, joining, onJoin, o
             {community.member_count} {community.member_count === 1 ? "member" : "members"}
           </span>
         </div>
-        <button
-          onClick={(e) => { e.stopPropagation(); onJoin(); }}
-          disabled={joining || isCreator}
-          className={`w-full py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-            isCreator
-              ? "bg-accent/40 text-accent-foreground cursor-default"
-              : joined
-              ? "bg-secondary text-secondary-foreground border border-border"
-              : "bg-primary text-primary-foreground shadow-ceramic"
-          }`}
-        >
-          {isCreator ? (
-            <><Crown size={15} /> Admin</>
-          ) : joined ? (
-            <><Users size={15} /> Member ✓</>
-          ) : (
-            <><Users size={15} /> Join Community</>
-          )}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => { e.stopPropagation(); onDiscussion(); }}
+            className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 bg-card text-foreground border border-border hover:bg-secondary"
+          >
+            <MessageCircle size={15} />
+            Discussion
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onJoin(); }}
+            disabled={joining || isCreator}
+            className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+              isCreator
+                ? "bg-accent/40 text-accent-foreground cursor-default"
+                : joined
+                ? "bg-secondary text-secondary-foreground border border-border"
+                : "bg-primary text-primary-foreground shadow-ceramic"
+            }`}
+          >
+            {isCreator ? (
+              <><Crown size={15} /> Admin</>
+            ) : joined ? (
+              <><Users size={15} /> Member ✓</>
+            ) : (
+              <><Users size={15} /> Join</>
+            )}
+          </button>
+        </div>
       </div>
     </motion.div>
   );
