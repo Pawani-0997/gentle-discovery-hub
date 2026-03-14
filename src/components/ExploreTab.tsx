@@ -33,6 +33,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [selectedHobby, setSelectedHobby] = useState<Hobby | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [hobbyChatId, setHobbyChatId] = useState<{ communityId: string; communityName: string; isMember: boolean } | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [joiningId, setJoiningId] = useState<string | null>(null);
