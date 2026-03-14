@@ -16,9 +16,15 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/hobby-mentor
 
 async function streamChat({
   messages,
+  currentHobbies,
   onDelta,
   onDone,
 }: {
+  messages: Message[];
+  currentHobbies?: string[];
+  onDelta: (deltaText: string) => void;
+  onDone: () => void;
+}) {
   messages: Message[];
   onDelta: (deltaText: string) => void;
   onDone: () => void;
