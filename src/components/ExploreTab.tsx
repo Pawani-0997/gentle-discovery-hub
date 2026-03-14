@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Bookmark, BookmarkCheck, Zap, ArrowLeft, Clock, DollarSign, BarChart3, Plus, Users, Crown, MessageCircle, RefreshCw } from "lucide-react";
-import { CATEGORIES, type Hobby } from "@/data/hobbies";
+import { Search, Bookmark, BookmarkCheck, Zap, ArrowLeft, Clock, DollarSign, BarChart3, Plus, Users, Crown, MessageCircle, RefreshCw, Loader2, Play } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import CreateCommunityForm from "./CreateCommunityForm";
 import CommunityPage from "./CommunityPage";
 import CommunityQuickChat from "./CommunityQuickChat";
-import { useShuffledHobbies } from "@/hooks/useShuffledHobbies";
+import { useAIHobbies, AI_CATEGORIES, type AIHobby } from "@/hooks/useAIHobbies";
+import { Skeleton } from "@/components/ui/skeleton";
+import { fetchPexelsVideo, getBestVideoFile } from "@/lib/pexels";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
@@ -30,10 +31,10 @@ interface ExploreTabProps {
 
 export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabProps) {
   const { user } = useAuth();
-  const { hobbies: shuffledHobbies, getImage, refreshFeed, isRefreshing } = useShuffledHobbies();
+  const { hobbies: aiHobbies, isLoading, isRefreshing, loadingImages, refreshFeed } = useAIHobbies();
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("All");
-  const [selectedHobby, setSelectedHobby] = useState<Hobby | null>(null);
+  const [selectedHobby, setSelectedHobby] = useState<AIHobby | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [hobbyChatId, setHobbyChatId] = useState<{ communityId: string; communityName: string; isMember: boolean } | null>(null);
   const [communities, setCommunities] = useState<Community[]>([]);
@@ -87,32 +88,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
     }
   };
 
-  const findCommunityForHobby = (hobby: Hobby) => {
-    const hobbyLower = hobby.name.toLowerCase();
-    const match = communities.find(
-      (c) =>
-        c.name.toLowerCase().includes(hobbyLower) ||
-        hobbyLower.includes(c.name.toLowerCase()) ||
-        c.tags.some((t) => t.toLowerCase() === hobby.id || t.toLowerCase() === hobbyLower)
-    );
-    return match;
-  };
-
-  const handleHobbyDiscussion = (hobby: Hobby) => {
-    const match = findCommunityForHobby(hobby);
-    if (match) {
-      setHobbyChatId({
-        communityId: match.id,
-        communityName: match.name,
-        isMember: joinedIds.has(match.id) || match.creator_id === user?.id,
-      });
-    } else {
-      toast("No community found for this hobby yet. Create one!", { icon: "💬" });
-      setShowCreateForm(true);
-    }
-  };
-
-  const filtered = shuffledHobbies.filter((h) => {
+  const filtered = aiHobbies.filter((h) => {
     const matchesCategory = activeCategory === "All" || h.category === activeCategory;
     const matchesSearch =
       search === "" ||
@@ -142,11 +118,11 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={refreshFeed}
-              disabled={isRefreshing}
+              disabled={isRefreshing || isLoading}
               className="flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-card border border-border text-sm font-medium text-muted-foreground hover:text-primary hover:border-primary/30 transition-colors cursor-pointer disabled:opacity-50"
             >
-              <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
-              {isRefreshing ? "Refreshing..." : "Refresh"}
+              <RefreshCw size={14} className={isRefreshing || isLoading ? "animate-spin" : ""} />
+              {isRefreshing ? "Generating..." : isLoading ? "Loading..." : "Refresh"}
             </motion.button>
           </div>
 
@@ -164,7 +140,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
 
           {/* Category pills */}
           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar mb-6">
-            {CATEGORIES.map((cat) => (
+            {AI_CATEGORIES.map((cat) => (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
@@ -180,8 +156,29 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
           </div>
         </motion.div>
 
+        {/* Loading skeletons */}
+        {isLoading && (
+          <div className="space-y-5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-[1.5rem] overflow-hidden bg-card shadow-ceramic">
+                <Skeleton className="aspect-[16/10] w-full" />
+                <div className="p-5 space-y-3">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-6 w-3/4" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-12 w-full rounded-xl" />
+                </div>
+              </div>
+            ))}
+            <p className="text-center text-muted-foreground text-sm py-4 flex items-center justify-center gap-2">
+              <Loader2 size={16} className="animate-spin" />
+              AI is curating unique hobbies for you...
+            </p>
+          </div>
+        )}
+
         {/* User Communities Section */}
-        {filteredCommunities.length > 0 && (
+        {!isLoading && filteredCommunities.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -211,24 +208,25 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
         )}
 
         {/* Hobbies Cards */}
-        <div className="space-y-5">
-          {filtered.map((hobby, i) => (
-            <HobbyCard
-              key={hobby.id}
-              hobby={hobby}
-              index={i}
-              saved={savedHobbies.includes(hobby.id)}
-              onToggleSave={() => onToggleSave(hobby.id)}
-              onOpen={() => setSelectedHobby(hobby)}
-              imageUrl={getImage(hobby)}
-            />
-          ))}
-          {filtered.length === 0 && filteredCommunities.length === 0 && (
-            <p className="text-center text-muted-foreground py-12">
-              No hobbies or communities found. Try a different search.
-            </p>
-          )}
-        </div>
+        {!isLoading && (
+          <div className="space-y-5">
+            {filtered.map((hobby, i) => (
+              <HobbyCard
+                key={hobby.id}
+                hobby={hobby}
+                index={i}
+                saved={savedHobbies.includes(hobby.id)}
+                onToggleSave={() => onToggleSave(hobby.id)}
+                onOpen={() => setSelectedHobby(hobby)}
+              />
+            ))}
+            {filtered.length === 0 && filteredCommunities.length === 0 && (
+              <p className="text-center text-muted-foreground py-12">
+                No hobbies or communities found. Try a different search.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Floating Create Button */}
@@ -261,7 +259,6 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
             saved={savedHobbies.includes(selectedHobby.id)}
             onToggleSave={() => onToggleSave(selectedHobby.id)}
             onClose={() => setSelectedHobby(null)}
-            imageUrl={getImage(selectedHobby)}
           />
         )}
         {selectedCommunity && (
@@ -313,41 +310,27 @@ function CommunityCard({ community, index, joined, isCreator, joining, onJoin, o
       className="rounded-[1.5rem] overflow-hidden bg-card shadow-ceramic cursor-pointer"
       onClick={onOpen}
     >
-      {/* Cover */}
       {community.cover_image_url && (
         <div className="aspect-[16/7] overflow-hidden">
-          <img
-            src={community.cover_image_url}
-            alt={community.name}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
+          <img src={community.cover_image_url} alt={community.name} className="w-full h-full object-cover" loading="lazy" />
         </div>
       )}
-
       <div className="p-5">
         <div className="flex items-center gap-2 mb-1">
           <h3 className="text-lg font-serif-display leading-tight">{community.name}</h3>
-          {isCreator && (
-            <Crown size={14} className="text-accent-foreground flex-shrink-0" />
-          )}
+          {isCreator && <Crown size={14} className="text-accent-foreground flex-shrink-0" />}
         </div>
-        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-3">
-          {community.description}
-        </p>
+        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-3">{community.description}</p>
         {community.tags.length > 0 && (
           <div className="flex flex-wrap gap-1.5 mb-3">
             {community.tags.slice(0, 4).map((tag) => (
-              <span key={tag} className="px-2.5 py-1 rounded-full bg-secondary text-[11px] font-medium text-secondary-foreground">
-                {tag}
-              </span>
+              <span key={tag} className="px-2.5 py-1 rounded-full bg-secondary text-[11px] font-medium text-secondary-foreground">{tag}</span>
             ))}
           </div>
         )}
         <div className="flex items-center justify-between mb-4">
           <span className="text-xs text-muted-foreground flex items-center gap-1.5">
-            <Users size={13} />
-            {community.member_count} {community.member_count === 1 ? "member" : "members"}
+            <Users size={13} /> {community.member_count} {community.member_count === 1 ? "member" : "members"}
           </span>
         </div>
         <div className="flex gap-2">
@@ -355,27 +338,18 @@ function CommunityCard({ community, index, joined, isCreator, joining, onJoin, o
             onClick={(e) => { e.stopPropagation(); onDiscussion(); }}
             className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 bg-card text-foreground border border-border hover:bg-secondary"
           >
-            <MessageCircle size={15} />
-            Discussion
+            <MessageCircle size={15} /> Discussion
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onJoin(); }}
             disabled={joining || isCreator}
             className={`flex-1 py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-              isCreator
-                ? "bg-accent/40 text-accent-foreground cursor-default"
-                : joined
-                ? "bg-secondary text-secondary-foreground border border-border"
+              isCreator ? "bg-accent/40 text-accent-foreground cursor-default"
+                : joined ? "bg-secondary text-secondary-foreground border border-border"
                 : "bg-primary text-primary-foreground shadow-ceramic"
             }`}
           >
-            {isCreator ? (
-              <><Crown size={15} /> Admin</>
-            ) : joined ? (
-              <><Users size={15} /> Member ✓</>
-            ) : (
-              <><Users size={15} /> Join</>
-            )}
+            {isCreator ? (<><Crown size={15} /> Admin</>) : joined ? (<><Users size={15} /> Member ✓</>) : (<><Users size={15} /> Join</>)}
           </button>
         </div>
       </div>
@@ -383,58 +357,55 @@ function CommunityCard({ community, index, joined, isCreator, joining, onJoin, o
   );
 }
 
-/* ── Hobby Card (unchanged) ── */
+/* ── Hobby Card ── */
 
 interface HobbyCardProps {
-  hobby: Hobby;
+  hobby: AIHobby;
   index: number;
   saved: boolean;
   onToggleSave: () => void;
   onOpen: () => void;
-  imageUrl: string;
 }
 
-function HobbyCard({ hobby, index, saved, onToggleSave, onOpen, imageUrl }: HobbyCardProps) {
+function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps) {
   const handleJoinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleSave();
-    if (!saved) {
-      toast.success(`Welcome to the ${hobby.name} tribe! 🎉`);
-    }
+    if (!saved) toast.success(`Welcome to the ${hobby.name} tribe! 🎉`);
   };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: BEZIER, delay: index * 0.08 }}
+      transition={{ duration: 0.5, ease: BEZIER, delay: Math.min(index * 0.05, 0.4) }}
       className="rounded-[1.5rem] overflow-hidden bg-card shadow-ceramic group cursor-pointer"
       onClick={onOpen}
     >
-      <div className="relative aspect-[16/10] overflow-hidden">
-        <img
-          src={imageUrl}
-          alt={hobby.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-          loading="lazy"
-        />
+      <div className="relative aspect-[16/10] overflow-hidden bg-muted">
+        {hobby.image ? (
+          <img
+            src={hobby.image}
+            alt={hobby.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            loading="lazy"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Loader2 size={24} className="animate-spin text-muted-foreground" />
+          </div>
+        )}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-background/90 backdrop-blur-sm px-3 py-1.5 rounded-full">
           <Zap size={12} className="text-accent-foreground" />
-          <span className="text-[11px] font-bold uppercase tracking-wide text-accent-foreground">
-            Quick Tip
-          </span>
+          <span className="text-[11px] font-bold uppercase tracking-wide text-accent-foreground">Quick Tip</span>
         </div>
       </div>
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex-1 min-w-0">
-            <span className="text-[11px] font-bold uppercase tracking-widest text-primary/60 block mb-1">
-              {hobby.category}
-            </span>
+            <span className="text-[11px] font-bold uppercase tracking-widest text-primary/60 block mb-1">{hobby.category}</span>
             <h3 className="text-xl font-serif-display leading-tight mb-2">{hobby.name}</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">
-              {hobby.quickTip}
-            </p>
+            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2">{hobby.quickTip}</p>
           </div>
           <button
             onClick={(e) => { e.stopPropagation(); onToggleSave(); }}
@@ -447,33 +418,51 @@ function HobbyCard({ hobby, index, saved, onToggleSave, onOpen, imageUrl }: Hobb
         <button
           onClick={handleJoinClick}
           className={`w-full py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
-            saved
-              ? "bg-secondary text-secondary-foreground border border-border"
-              : "bg-primary text-primary-foreground shadow-ceramic"
+            saved ? "bg-secondary text-secondary-foreground border border-border" : "bg-primary text-primary-foreground shadow-ceramic"
           }`}
         >
-          {saved ? (
-            <><Users size={15} /> Member ✓</>
-          ) : (
-            <><Users size={15} /> Join Community</>
-          )}
+          {saved ? (<><Users size={15} /> Member ✓</>) : (<><Users size={15} /> Join Community</>)}
         </button>
       </div>
     </motion.div>
   );
 }
 
-/* ── Hobby Detail Page (unchanged) ── */
+/* ── Hobby Detail Page with Video ── */
 
 interface HobbyDetailPageProps {
-  hobby: Hobby;
+  hobby: AIHobby;
   saved: boolean;
   onToggleSave: () => void;
   onClose: () => void;
-  imageUrl: string;
 }
 
-function HobbyDetailPage({ hobby, saved, onToggleSave, onClose, imageUrl }: HobbyDetailPageProps) {
+function HobbyDetailPage({ hobby, saved, onToggleSave, onClose }: HobbyDetailPageProps) {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [loadingVideo, setLoadingVideo] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+
+  const handlePlayVideo = async () => {
+    if (videoUrl) {
+      setShowVideo(true);
+      return;
+    }
+    setLoadingVideo(true);
+    const video = await fetchPexelsVideo(hobby.name);
+    if (video) {
+      const url = getBestVideoFile(video);
+      if (url) {
+        setVideoUrl(url);
+        setShowVideo(true);
+      } else {
+        toast("No video clip available for this hobby", { icon: "🎬" });
+      }
+    } else {
+      toast("No video clip available for this hobby", { icon: "🎬" });
+    }
+    setLoadingVideo(false);
+  };
+
   return (
     <motion.div
       initial={{ y: "100%" }}
@@ -482,12 +471,41 @@ function HobbyDetailPage({ hobby, saved, onToggleSave, onClose, imageUrl }: Hobb
       transition={{ duration: 0.6, ease: BEZIER }}
       className="fixed inset-0 bg-background z-50 overflow-y-auto"
     >
-      <div className="relative aspect-[4/3] overflow-hidden">
-        <img src={imageUrl} alt={hobby.name} className="w-full h-full object-cover" />
+      <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+        {showVideo && videoUrl ? (
+          <video
+            src={videoUrl}
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+          />
+        ) : hobby.image ? (
+          <img src={hobby.image} alt={hobby.name} className="w-full h-full object-cover" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Loader2 size={32} className="animate-spin text-muted-foreground" />
+          </div>
+        )}
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
         <button onClick={onClose} className="absolute top-6 left-6 p-2.5 bg-background/80 backdrop-blur-sm rounded-full cursor-pointer">
           <ArrowLeft size={20} className="text-foreground" />
         </button>
+        {/* Play video button */}
+        {!showVideo && (
+          <button
+            onClick={handlePlayVideo}
+            disabled={loadingVideo}
+            className="absolute top-6 right-6 p-2.5 bg-background/80 backdrop-blur-sm rounded-full cursor-pointer flex items-center gap-1.5"
+          >
+            {loadingVideo ? (
+              <Loader2 size={20} className="text-foreground animate-spin" />
+            ) : (
+              <Play size={20} className="text-foreground" />
+            )}
+          </button>
+        )}
       </div>
       <div className="px-6 -mt-12 relative z-10 pb-32 max-w-md mx-auto">
         <span className="text-[11px] font-bold uppercase tracking-widest text-primary/60 block mb-2">{hobby.category}</span>
