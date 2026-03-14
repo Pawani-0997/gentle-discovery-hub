@@ -5,6 +5,7 @@ import hobbyOrigami from "@/assets/hobby-origami.jpg";
 import hobbyChess from "@/assets/hobby-chess.jpg";
 import hobbyPhotography from "@/assets/hobby-photography.jpg";
 import hobbyLinocut from "@/assets/hobby-linocut.jpg";
+import hobbyEsports from "@/assets/hobby-esports.jpg";
 
 export interface Hobby {
   id: string;
