@@ -229,6 +229,14 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
             onClose={() => setSelectedCommunity(null)}
           />
         )}
+        {chatCommunity && (
+          <CommunityQuickChat
+            communityId={chatCommunity.id}
+            communityName={chatCommunity.name}
+            isMember={joinedIds.has(chatCommunity.id) || chatCommunity.creator_id === user?.id}
+            onClose={() => setChatCommunity(null)}
+          />
+        )}
       </AnimatePresence>
     </>
   );
