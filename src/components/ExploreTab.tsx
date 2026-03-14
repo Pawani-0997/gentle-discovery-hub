@@ -470,9 +470,10 @@ interface HobbyDetailPageProps {
   saved: boolean;
   onToggleSave: () => void;
   onClose: () => void;
+  imageUrl: string;
 }
 
-function HobbyDetailPage({ hobby, saved, onToggleSave, onClose }: HobbyDetailPageProps) {
+function HobbyDetailPage({ hobby, saved, onToggleSave, onClose, imageUrl }: HobbyDetailPageProps) {
   return (
     <motion.div
       initial={{ y: "100%" }}
