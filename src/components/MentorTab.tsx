@@ -4,9 +4,6 @@ import { Send, Cpu, User, Loader2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { toast } from "sonner";
 import { HOBBIES } from "@/data/hobbies";
-import { Send, Cpu, User, Loader2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import { toast } from "sonner";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
