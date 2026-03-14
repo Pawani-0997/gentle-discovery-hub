@@ -81,9 +81,10 @@ function getHobbyResult(answers: Answers): HobbyResult {
 
 interface QuizModalProps {
   onClose: () => void;
+  onJoinCommunity?: (hobbyName: string) => void;
 }
 
-export default function QuizModal({ onClose }: QuizModalProps) {
+export default function QuizModal({ onClose, onJoinCommunity }: QuizModalProps) {
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answers>({});
   const [showResult, setShowResult] = useState(false);
@@ -197,7 +198,12 @@ export default function QuizModal({ onClose }: QuizModalProps) {
 
                 <motion.button
                   whileTap={{ scale: 0.96 }}
-                  onClick={onClose}
+                  onClick={() => {
+                    if (onJoinCommunity && result) {
+                      onJoinCommunity(result.name);
+                    }
+                    onClose();
+                  }}
                   className="w-full max-w-xs py-5 px-8 bg-primary text-primary-foreground rounded-lg font-medium flex items-center justify-center gap-3 shadow-ceramic-lg cursor-pointer"
                 >
                   <Sparkles size={18} />
