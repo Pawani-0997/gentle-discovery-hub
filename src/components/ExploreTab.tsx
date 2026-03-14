@@ -37,6 +37,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
   const [joinedIds, setJoinedIds] = useState<Set<string>>(new Set());
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const [selectedCommunity, setSelectedCommunity] = useState<Community | null>(null);
+  const [chatCommunity, setChatCommunity] = useState<Community | null>(null);
 
   const fetchCommunities = async () => {
     const { data } = await supabase
