@@ -85,6 +85,31 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
     }
   };
 
+  const findCommunityForHobby = (hobby: Hobby) => {
+    const hobbyLower = hobby.name.toLowerCase();
+    const match = communities.find(
+      (c) =>
+        c.name.toLowerCase().includes(hobbyLower) ||
+        hobbyLower.includes(c.name.toLowerCase()) ||
+        c.tags.some((t) => t.toLowerCase() === hobby.id || t.toLowerCase() === hobbyLower)
+    );
+    return match;
+  };
+
+  const handleHobbyDiscussion = (hobby: Hobby) => {
+    const match = findCommunityForHobby(hobby);
+    if (match) {
+      setHobbyChatId({
+        communityId: match.id,
+        communityName: match.name,
+        isMember: joinedIds.has(match.id) || match.creator_id === user?.id,
+      });
+    } else {
+      toast("No community found for this hobby yet. Create one!", { icon: "💬" });
+      setShowCreateForm(true);
+    }
+  };
+
   const filtered = HOBBIES.filter((h) => {
     const matchesCategory = activeCategory === "All" || h.category === activeCategory;
     const matchesSearch =
