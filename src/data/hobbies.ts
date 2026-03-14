@@ -179,6 +179,28 @@ export const HOBBIES: Hobby[] = [
       firstProject: "Carve a simple leaf shape into a small linoleum block. Print it 5 times on different papers to see how the texture varies with pressure and ink amount.",
     },
   },
+  {
+    id: "esports",
+    name: "Esports & Competitive Gaming",
+    category: "Tech",
+    image: hobbyEsports,
+    quickTip: "Pick one game and master it — spreading across titles slows your growth.",
+    tagline: "Compete, strategize, dominate",
+    difficulty: "Beginner to Advanced",
+    cost: "Free to $$$",
+    timeCommitment: "1-2 hour sessions",
+    guide: {
+      intro: "Esports turns gaming into a structured pursuit of mastery. Whether it's tactical shooters, MOBAs, or fighting games, competitive gaming builds reflexes, teamwork, and strategic thinking.",
+      steps: [
+        "Choose one competitive game that excites you (Valorant, League of Legends, Rocket League, etc.)",
+        "Learn the fundamentals: map awareness, economy management, or character matchups",
+        "Watch pro players and study their decision-making, not just their aim",
+        "Use aim trainers or practice modes to build mechanical skill daily",
+        "Join a community or Discord server to find teammates and scrimmage",
+      ],
+      firstProject: "Play 10 ranked matches in your chosen game. After each one, write down one mistake you made and one thing you did well. Review the list after all 10 games to spot patterns.",
+    },
+  },
 ];
 
 export const CATEGORIES = ["All", "Art", "Tech", "Outdoors", "Mindfulness"] as const;
