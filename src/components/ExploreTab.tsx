@@ -254,49 +254,49 @@ function CommunityCard({ community, index, joined, isCreator, joining, onJoin }:
       )}
 
       <div className="p-5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <h3 className="text-lg font-serif-display leading-tight">{community.name}</h3>
-              {isCreator && (
-                <Crown size={14} className="text-accent-foreground flex-shrink-0" />
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-3">
-              {community.description}
-            </p>
-            {/* Tags */}
-            {community.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mb-3">
-                {community.tags.slice(0, 4).map((tag) => (
-                  <span
-                    key={tag}
-                    className="px-2.5 py-1 rounded-full bg-secondary text-[11px] font-medium text-secondary-foreground"
-                  >
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
-            <span className="text-xs text-muted-foreground">
-              {community.member_count} {community.member_count === 1 ? "member" : "members"}
-            </span>
-          </div>
-
-          <button
-            onClick={onJoin}
-            disabled={joining || isCreator}
-            className={`px-4 py-2 rounded-full text-xs font-medium transition-all cursor-pointer flex-shrink-0 ${
-              isCreator
-                ? "bg-accent/40 text-accent-foreground cursor-default"
-                : joined
-                ? "bg-secondary text-secondary-foreground"
-                : "bg-primary text-primary-foreground shadow-ceramic"
-            }`}
-          >
-            {isCreator ? "Admin" : joined ? "Joined" : "Join"}
-          </button>
+        <div className="flex items-center gap-2 mb-1">
+          <h3 className="text-lg font-serif-display leading-tight">{community.name}</h3>
+          {isCreator && (
+            <Crown size={14} className="text-accent-foreground flex-shrink-0" />
+          )}
         </div>
+        <p className="text-sm text-muted-foreground leading-relaxed line-clamp-2 mb-3">
+          {community.description}
+        </p>
+        {community.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {community.tags.slice(0, 4).map((tag) => (
+              <span key={tag} className="px-2.5 py-1 rounded-full bg-secondary text-[11px] font-medium text-secondary-foreground">
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+        <div className="flex items-center justify-between mb-4">
+          <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+            <Users size={13} />
+            {community.member_count} {community.member_count === 1 ? "member" : "members"}
+          </span>
+        </div>
+        <button
+          onClick={onJoin}
+          disabled={joining || isCreator}
+          className={`w-full py-3 rounded-xl text-sm font-semibold transition-all cursor-pointer flex items-center justify-center gap-2 ${
+            isCreator
+              ? "bg-accent/40 text-accent-foreground cursor-default"
+              : joined
+              ? "bg-secondary text-secondary-foreground border border-border"
+              : "bg-primary text-primary-foreground shadow-ceramic"
+          }`}
+        >
+          {isCreator ? (
+            <><Crown size={15} /> Admin</>
+          ) : joined ? (
+            <><Users size={15} /> Member ✓</>
+          ) : (
+            <><Users size={15} /> Join Community</>
+          )}
+        </button>
       </div>
     </motion.div>
   );
