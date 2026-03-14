@@ -483,7 +483,7 @@ function HobbyDetailPage({ hobby, saved, onToggleSave, onClose, imageUrl }: Hobb
       className="fixed inset-0 bg-background z-50 overflow-y-auto"
     >
       <div className="relative aspect-[4/3] overflow-hidden">
-        <img src={hobby.image} alt={hobby.name} className="w-full h-full object-cover" />
+        <img src={imageUrl} alt={hobby.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent" />
         <button onClick={onClose} className="absolute top-6 left-6 p-2.5 bg-background/80 backdrop-blur-sm rounded-full cursor-pointer">
           <ArrowLeft size={20} className="text-foreground" />
