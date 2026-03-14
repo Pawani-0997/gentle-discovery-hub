@@ -164,6 +164,7 @@ export default function ExploreTab({ savedHobbies, onToggleSave }: ExploreTabPro
                   joining={joiningId === community.id}
                   onJoin={() => handleJoin(community.id, community.name)}
                   onOpen={() => setSelectedCommunity(community)}
+                  onDiscussion={() => setChatCommunity(community)}
                 />
               ))}
             </div>
