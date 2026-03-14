@@ -390,9 +390,10 @@ interface HobbyCardProps {
   saved: boolean;
   onToggleSave: () => void;
   onOpen: () => void;
+  imageUrl: string;
 }
 
-function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps) {
+function HobbyCard({ hobby, index, saved, onToggleSave, onOpen, imageUrl }: HobbyCardProps) {
   const handleJoinClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onToggleSave();
