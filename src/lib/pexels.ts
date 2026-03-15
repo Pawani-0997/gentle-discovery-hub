@@ -1,5 +1,7 @@
 const PEXELS_API_KEY = "uCGiNfJIHYMX7VNDMiTMjQHVMzkLJOGEBW3rxpZvcLqO3pBrvkHOiCKP";
 
+export type PexelsSize = "original" | "large2x" | "large" | "medium" | "small" | "tiny";
+
 export interface PexelsPhoto {
   id: number;
   src: {
@@ -8,6 +10,7 @@ export interface PexelsPhoto {
     large: string;
     medium: string;
     small: string;
+    tiny: string;
   };
   alt: string;
   photographer: string;
@@ -27,11 +30,19 @@ export interface PexelsVideo {
   }[];
 }
 
-const imageCache = new Map<string, string>();
+const imageCache = new Map<string, PexelsPhoto>();
 const videoCache = new Map<string, PexelsVideo | null>();
 
-export async function fetchPexelsImage(query: string): Promise<string | null> {
-  if (imageCache.has(query)) return imageCache.get(query)!;
+/**
+ * Fetch a single Pexels image for a query.
+ * @param size - which Pexels src size to return (default "small" for card views)
+ */
+export async function fetchPexelsImage(
+  query: string,
+  size: PexelsSize = "small"
+): Promise<string | null> {
+  const cached = imageCache.get(query);
+  if (cached) return cached.src[size] || cached.src.small;
 
   try {
     const page = Math.floor(Math.random() * 2) + 1;
@@ -46,12 +57,18 @@ export async function fetchPexelsImage(query: string): Promise<string | null> {
     if (photos.length === 0) return null;
 
     const photo = photos[Math.floor(Math.random() * photos.length)];
-    const url = photo.src.large;
-    imageCache.set(query, url);
-    return url;
+    imageCache.set(query, photo);
+    return photo.src[size] || photo.src.small;
   } catch {
     return null;
   }
+}
+
+/**
+ * Get the HD image URL for a query (uses cached photo if available).
+ */
+export async function fetchPexelsImageHD(query: string): Promise<string | null> {
+  return fetchPexelsImage(query, "large");
 }
 
 export async function fetchPexelsVideo(query: string): Promise<PexelsVideo | null> {
@@ -84,7 +101,6 @@ export function getBestVideoFile(video: PexelsVideo): string | null {
   const files = video.video_files
     .filter((f) => f.file_type === "video/mp4")
     .sort((a, b) => {
-      // Prefer HD (720-1080p width)
       const aScore = a.width >= 720 && a.width <= 1280 ? 1 : 0;
       const bScore = b.width >= 720 && b.width <= 1280 ? 1 : 0;
       if (aScore !== bScore) return bScore - aScore;
@@ -96,7 +112,8 @@ export function getBestVideoFile(video: PexelsVideo): string | null {
 // Batch fetch images for multiple queries with concurrency control
 export async function fetchImagesBatch(
   queries: string[],
-  concurrency = 6
+  concurrency = 6,
+  size: PexelsSize = "small"
 ): Promise<Map<string, string>> {
   const results = new Map<string, string>();
   const queue = [...queries];
@@ -104,7 +121,7 @@ export async function fetchImagesBatch(
   const worker = async () => {
     while (queue.length > 0) {
       const q = queue.shift()!;
-      const url = await fetchPexelsImage(q);
+      const url = await fetchPexelsImage(q, size);
       if (url) results.set(q, url);
     }
   };

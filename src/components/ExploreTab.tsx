@@ -9,7 +9,7 @@ import CommunityPage from "./CommunityPage";
 import CommunityQuickChat from "./CommunityQuickChat";
 import { useAIHobbies, AI_CATEGORIES, type AIHobby } from "@/hooks/useAIHobbies";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchPexelsVideo, getBestVideoFile } from "@/lib/pexels";
+import { fetchPexelsVideo, fetchPexelsImageHD, getBestVideoFile } from "@/lib/pexels";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 
@@ -388,7 +388,8 @@ function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps
             src={hobby.image}
             alt={hobby.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            loading="lazy"
+            loading={index < 4 ? "eager" : "lazy"}
+            fetchPriority={index < 4 ? "high" : "auto"}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
@@ -438,9 +439,17 @@ interface HobbyDetailPageProps {
 }
 
 function HobbyDetailPage({ hobby, saved, onToggleSave, onClose }: HobbyDetailPageProps) {
+  const [hdImage, setHdImage] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loadingVideo, setLoadingVideo] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+
+  // Lazy-load HD image when detail page opens
+  useEffect(() => {
+    fetchPexelsImageHD(hobby.name).then((url) => {
+      if (url) setHdImage(url);
+    });
+  }, [hobby.name]);
 
   const handlePlayVideo = async () => {
     if (videoUrl) {
@@ -481,8 +490,8 @@ function HobbyDetailPage({ hobby, saved, onToggleSave, onClose }: HobbyDetailPag
             playsInline
             className="w-full h-full object-cover"
           />
-        ) : hobby.image ? (
-          <img src={hobby.image} alt={hobby.name} className="w-full h-full object-cover" />
+        ) : (hdImage || hobby.image) ? (
+          <img src={hdImage || hobby.image} alt={hobby.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Loader2 size={32} className="animate-spin text-muted-foreground" />
