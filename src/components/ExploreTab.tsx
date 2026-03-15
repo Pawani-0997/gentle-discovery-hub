@@ -388,7 +388,8 @@ function HobbyCard({ hobby, index, saved, onToggleSave, onOpen }: HobbyCardProps
             src={hobby.image}
             alt={hobby.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            loading="lazy"
+            loading={index < 4 ? "eager" : "lazy"}
+            fetchPriority={index < 4 ? "high" : "auto"}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
