@@ -9,7 +9,7 @@ import CommunityPage from "./CommunityPage";
 import CommunityQuickChat from "./CommunityQuickChat";
 import { useAIHobbies, AI_CATEGORIES, type AIHobby } from "@/hooks/useAIHobbies";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchPexelsVideo, getBestVideoFile } from "@/lib/pexels";
+import { fetchPexelsVideo, fetchPexelsImageHD, getBestVideoFile } from "@/lib/pexels";
 
 const BEZIER = [0.16, 1, 0.3, 1] as const;
 

@@ -12,6 +12,19 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    // Accept hobby names from the client
+    let hobbyNames: string[] = [];
+    try {
+      const body = await req.json();
+      hobbyNames = body.hobbyNames || [];
+    } catch {
+      // no body is fine, will use generic prompt
+    }
+
+    const hobbyListInstruction = hobbyNames.length > 0
+      ? `Generate full profiles for EXACTLY these hobbies (in this order): ${hobbyNames.map(n => `"${n}"`).join(", ")}. Do NOT change the names.`
+      : "Generate 20 unique hobbies from around the world. Make them surprising and diverse.";
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -19,30 +32,16 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-2.5-flash-lite",
         messages: [
           {
             role: "system",
-            content: `You are a global hobby curator. Generate exactly 30 unique, diverse hobbies from around the world. 
-Include a mix of:
-- Niche crafts (Kintsugi, Sashiko, Temari, Bobbin lace)
-- Traditional arts (Batik, Calligraphy, Ikebana, Pottery)
-- Global sports (Parkour, Capoeira, Kabaddi, Sepak Takraw)
-- Traditional dances (Flamenco, Kathak, Samba, Tango)
-- Outdoor activities (Caving, Falconry, Foraging, Stargazing)
-- Tech hobbies (3D Printing, Drone racing, Pixel art, Retro computing)
-- Music (Beatboxing, Handpan, Theremin, Didgeridoo)
-- Culinary (Fermentation, Sushi making, Sourdough, Chocolate tempering)
-- Wellness (Tai Chi, Sound bathing, Forest bathing, Breathwork)
-- Unusual/quirky (Lock picking, Whittling, Stone balancing, Moss gardening)
-
-NEVER repeat mainstream hobbies like "Photography" or "Chess". Be creative and globally diverse.
-Each hobby must have a unique, searchable name that would return good results on a stock photo site.
-Keep guide steps to exactly 5 items. Keep all text concise.`,
+            content: `You are a global hobby curator. Generate hobby profiles with practical details.
+Keep guide steps to exactly 5 items. Keep all text concise. One sentence for quickTip and tagline.`,
           },
           {
             role: "user",
-            content: "Generate 30 unique hobbies from around the world. Make them surprising and diverse.",
+            content: hobbyListInstruction,
           },
         ],
         tools: [
@@ -50,7 +49,7 @@ Keep guide steps to exactly 5 items. Keep all text concise.`,
             type: "function",
             function: {
               name: "return_hobbies",
-              description: "Return a curated list of 30 unique hobbies from around the world with full profiles",
+              description: "Return hobby profiles",
               parameters: {
                 type: "object",
                 properties: {
@@ -59,24 +58,22 @@ Keep guide steps to exactly 5 items. Keep all text concise.`,
                     items: {
                       type: "object",
                       properties: {
-                        name: { type: "string", description: "The hobby name, e.g. 'Kintsugi' or 'Parkour'" },
+                        name: { type: "string" },
                         category: { 
                           type: "string", 
                           enum: ["Art", "Tech", "Outdoors", "Mindfulness", "Music", "Sport", "Culinary", "Wellness"],
-                          description: "The hobby category"
                         },
-                        quickTip: { type: "string", description: "A practical beginner tip in one sentence" },
-                        tagline: { type: "string", description: "A short poetic tagline, 3-6 words" },
-                        difficulty: { type: "string", description: "e.g. 'Beginner', 'Intermediate', 'Advanced'" },
-                        cost: { type: "string", description: "e.g. 'Free', '$15 starter kit', '$50+'" },
-                        timeCommitment: { type: "string", description: "e.g. '30 min sessions', '1-2 hours'" },
-                        guideIntro: { type: "string", description: "2-3 sentence intro to the hobby" },
+                        quickTip: { type: "string" },
+                        tagline: { type: "string" },
+                        difficulty: { type: "string" },
+                        cost: { type: "string" },
+                        timeCommitment: { type: "string" },
+                        guideIntro: { type: "string" },
                         guideSteps: { 
                           type: "array", 
                           items: { type: "string" },
-                          description: "Exactly 5 beginner steps"
                         },
-                        firstProject: { type: "string", description: "A specific first project suggestion" }
+                        firstProject: { type: "string" }
                       },
                       required: ["name", "category", "quickTip", "tagline", "difficulty", "cost", "timeCommitment", "guideIntro", "guideSteps", "firstProject"],
                       additionalProperties: false
@@ -95,14 +92,8 @@ Keep guide steps to exactly 5 items. Keep all text concise.`,
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
           status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits depleted. Please add credits in your workspace settings." }), {
-          status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
@@ -127,12 +118,12 @@ Keep guide steps to exactly 5 items. Keep all text concise.`,
 
     const parsed = JSON.parse(toolCall.function.arguments);
     
-    // Transform to the expected Hobby shape
-    const hobbies = parsed.hobbies.map((h: any, i: number) => ({
+    const hobbies = parsed.hobbies.map((h: any) => ({
       id: h.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, ""),
       name: h.name,
       category: h.category,
-      image: "", // will be filled by client via Pexels
+      image: "",
+      imageHD: "",
       quickTip: h.quickTip,
       tagline: h.tagline,
       difficulty: h.difficulty,
