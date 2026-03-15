@@ -490,8 +490,8 @@ function HobbyDetailPage({ hobby, saved, onToggleSave, onClose }: HobbyDetailPag
             playsInline
             className="w-full h-full object-cover"
           />
-        ) : hobby.image ? (
-          <img src={hobby.image} alt={hobby.name} className="w-full h-full object-cover" />
+        ) : (hdImage || hobby.image) ? (
+          <img src={hdImage || hobby.image} alt={hobby.name} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <Loader2 size={32} className="animate-spin text-muted-foreground" />
