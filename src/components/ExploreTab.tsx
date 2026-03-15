@@ -439,9 +439,17 @@ interface HobbyDetailPageProps {
 }
 
 function HobbyDetailPage({ hobby, saved, onToggleSave, onClose }: HobbyDetailPageProps) {
+  const [hdImage, setHdImage] = useState<string | null>(null);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [loadingVideo, setLoadingVideo] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+
+  // Lazy-load HD image when detail page opens
+  useEffect(() => {
+    fetchPexelsImageHD(hobby.name).then((url) => {
+      if (url) setHdImage(url);
+    });
+  }, [hobby.name]);
 
   const handlePlayVideo = async () => {
     if (videoUrl) {
